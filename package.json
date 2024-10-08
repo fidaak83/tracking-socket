@@ -1,0 +1,21 @@
+{
+  "name": "gps-tracking",
+  "version": "1.0.0",
+  "main": "socket.js",
+  "scripts": {
+    "start": "nodemon socket.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
