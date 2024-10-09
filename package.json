@@ -2,8 +2,9 @@
   "name": "gps-tracking",
   "version": "1.0.0",
   "main": "socket.js",
+  "type": "module",
   "scripts": {
-    "start": "nodemon socket.js"
+    "start": "node socket.js"
   },
   "keywords": [],
   "author": "",

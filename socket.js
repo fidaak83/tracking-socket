@@ -1,34 +1,39 @@
-const app = require('express')();
-const server = require('http').createServer(app);
-const axios = require('axios');
+import express from 'express';
+import { createServer } from 'http';
+import axios from 'axios';
+import { Server } from 'socket.io';
 
+const app = express();
+const server = createServer(app);
 
-const io = require('socket.io')(server, {
-    cors: {
-        origin: "*"
+const io = new Server(server, {
+    cors: { origin: "*" // Adjust this for production as needed
     }
 });
 
+// Socket.io connection handling
 io.on("connection", (socket) => {
-    // console.log("conn", socket.id)
+    console.log("A client connected:", socket.id);
+    
     socket.on("track", async (payload) => {
-        // console.log(payload.data)
-        const d = await searchData(payload.data);
+        const data = await searchData(payload.data);
+        io.to(socket.id).emit("track-message", data);
+    });
+});
 
-        // io.emit("track-message", {...payload})
-        io.to(socket.id).emit("track-message", d )
-    })
-})
+// GET route for fetching data
+app.get('/', async (req, res) => {
+    res.status(200).send(`${PORT} vehicle tracking...`);
+});
 
+// Start the server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}...`);
+});
 
-
-server.listen(5000, () => console.log("server is active..."))
-
-
-
-
+// Function to search for data
 const searchData = async (data) => {
-    // console.log(data.id)
     let config = {
         method: 'get',
         maxBodyLength: Infinity,
@@ -38,24 +43,32 @@ const searchData = async (data) => {
         }
     };
 
-    const newData = { type: "from function", ...data }
+    try {
+        const response = await axios.request(config);
+        let temperature = null;
+        
+        if (response.data.data[0].sensors_status) {
+            const sensors = response.data.data[0].sensors_status;
+            sensors.forEach(s => {
+                if (s.name === 'Temperature') {
+                    temperature = s.dig_value;
+                }
+            });
+        }
 
-   const d =  await axios.request(config)
-        .then((response) => {
-            // console.log(response.data)
-            return response.data.data[0].status;
-        })
-        .catch((error) => {
-            console.log(error);
-            return "error";
-        });
+        let vehicle = {
+            vehicle: response.data.data[0].vehiclenumber,
+            status: response.data.data[0].status.active,
+            parking: response.data.data[0].status.parking,
+            speed: response.data.data[0].status.speed,
+            location: `${response.data.data[0].status.lat}, ${response.data.data[0].status.lon}`,
+            temperature: parseInt(temperature),
+            timestamp: parseInt(response.data.data[0].status.unixtimestamp)
+        };
 
-    return d
-}
-
-
-
-
-
-
-
+        return vehicle;
+    } catch (error) {
+        console.log(error);
+        return "error";
+    }
+};
