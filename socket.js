@@ -3,6 +3,9 @@ import { createServer } from 'http';
 import axios from 'axios';
 import { Server } from 'socket.io';
 
+import { vehicles } from './api.js';
+
+
 const app = express();
 const server = createServer(app);
 
@@ -18,7 +21,17 @@ io.on("connection", (socket) => {
     socket.on("track", async (payload) => {
         const data = await searchData(payload.data);
         io.to(socket.id).emit("track-message", data);
+        // list()
     });
+
+    socket.on("track-buses", async (payload) => {
+        // console.log(payload)
+        const data = await vehicles(payload.data.current_location);
+        // const data = {...payload, d:"server"}
+        io.to(socket.id).emit("buses", data);
+    });
+
+
 });
 
 // GET route for fetching data
