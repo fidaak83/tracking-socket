@@ -1,6 +1,7 @@
 import axios from "axios";
+import haversine from 'haversine-distance'
 
-
+const passKey = 'Basic ZmF6YWw6TmV3QDIwMTA='
 
 const list = async () => {
     let config = {
@@ -8,7 +9,7 @@ const list = async () => {
         maxBodyLength: Infinity,
         url: 'https://safetracking.beamwave.sa/api/api.php?cmd=list',
         headers: {
-            'authorization': 'Basic ZmF6YWw6TmV3QDIwMTA='
+            'authorization': passKey
         }
     };
 
@@ -24,42 +25,17 @@ const list = async () => {
         .catch((error) => {
             return error
         });
-    // console.log(ids.toString())
     return ids.toString()
 }
 
-
-const calculate_time = async(current, detination) => {
-// console.log(current, detination);
-// return;
-    let config = {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: `https://maps.googleapis.com/maps/api/distancematrix/json?destinations=${detination}&origins=${current}&key=AIzaSyB_vHX-xvuS3kLLF5C18HL9gIpGlZudUyg`,
-        headers: {}
-    };
-
-    let time = await axios.request(config)
-        .then((response) => {
-            return response.data.rows[0].elements[0].duration.value;
-        })
-        .catch((error) => {
-            return false
-        });
-
-    return time
-}
-
-
 export const vehicles = async (current_location) => {
     const vlist = await list();
-
     let config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `https://safetracking.beamwave.sa/api/api.php?cmd=status&agents=${vlist}&node=4`,
         headers: {
-            'authorization': 'Basic ZmF6YWw6TmV3QDIwMTA='
+            'authorization': passKey
         }
     };
 
@@ -69,34 +45,29 @@ export const vehicles = async (current_location) => {
             let finalData = [];
 
             const promises = data.map(async (v) => {
-                let tt = await calculate_time(current_location, `${v.status.lat},${v.status.lon}`);
-                const dd = {
-                    name: v.vehiclenumber,
-                    // location: `${v.status.lat},${v.status.lon}`,
-                    time: tt
-                };
-                return dd; // Return the object to be collected
+
+                const speed = v.status.speed
+                const distance = haversine(current_location, { lat: v.status.lat, lon: v.status.lon }) / 1000
+                const time = (distance / speed) * 3600
+
+                if (distance < 2 && speed > 1) {
+                    finalData.push({ name: v.vehiclenumber, speed, distance, time })
+                }
+
             });
 
-            // Wait for all promises to resolve
-            finalData = await Promise.all(promises);
-
-            // Sort by time in ascending order and get the top 10
-            const topTen = finalData
+            // Sort by time in ascending order and get the top 5
+            const topFive = finalData
                 .sort((a, b) => a.time - b.time) // Ensure time is numeric
-                .slice(0, 10); // Get the top 10
+                .slice(0, 5); // Get the top 5
 
-            return topTen; // Return the sorted top 10
+            return topFive; // Return the sorted top 5
         })
         .catch((error) => {
             console.error(error);
             return []; // Return an empty array or handle the error as needed
         });
 
-    // console.log(res); // This should now log the top 10 entries
-    return res; // Return the top 10 entries
+    // console.log(res); // This should now log the top 5 entries
+    return res; // Return the top 5 entries
 }
-
-
-
-

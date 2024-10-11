@@ -16,7 +16,7 @@ const io = new Server(server, {
 
 // Socket.io connection handling
 io.on("connection", (socket) => {
-    console.log("A client connected:", socket.id);
+    console.log("Client connected:", socket.id);
     
     socket.on("track", async (payload) => {
         const data = await searchData(payload.data);
